@@ -10,13 +10,16 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import { useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { captureRef } from "react-native-view-shot";
+
 
 const PlaceholderImage = require("../../assets/images/background-image.png");
 
 export default function Index() {
 
-  const imageRef = useRef(null);
+  const imageRef = useRef<View>(null);
+
 
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
@@ -30,16 +33,18 @@ export default function Index() {
     if (permissionResponse?.granted) {
       requestPermission();
     }
+
   },[]);
 
-  const pickIamgeAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+  const pickImageAsync = async () => {
+     let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
+    
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
-      setShowAppOptions(true);
       console.log(result);
     } else {
       console.log("Image picking was canceled");
@@ -57,44 +62,43 @@ const onModalClose = () => {
     setIsModalVisible(true);
 
   };
-  
   const onSaveImageAsync = async () => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS !== 'web') {
+      try {
+        const localUri = await captureRef(imageRef, {
+          height: 440,
+          quality: 1,
+        });
+
+        await MediaLibrary.saveToLibraryAsync(localUri);
+        if (localUri) {
+          alert('Saved!');
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    } else {
       try {
         //@ts-ignore
         const dataUrl = await domtoimage.toJpeg(imageRef.current, {
-          quality: 1,
+          quality: 0.95,
           width: 320,
           height: 440,
-       
-      });
-      let link = document.createElement("a");
-      link.download = 'sticker-smash.jpeg';
-      link.href = dataUrl;
-      link.click();
-    }catch (e){
-      console.log(e);
-    }
-    }else{
-    try {
-      const localUri = await captureRef(imageRef, {
-        height: 440,
-        quality: 1,
-      });
+        });
 
-      await MediaLibrary.saveToLibraryAsync(localUri);
-      if (localUri) {
-        alert('Saved!');
+        let link = document.createElement('a');
+        link.download = 'sticker-smash.jpeg';
+        link.href = dataUrl;
+        link.click();
+      } catch (e) {
+        console.log(e);
       }
-    } catch (e) {
-      console.log(e);
     }
-  }
   };
 
   return (
-    <View style={styles.container}> 
-  <View ref = {imageRef} style={{}}>
+    <GestureHandlerRootView style={styles.container}> 
+  <View ref = {imageRef} collapsable={false}  >
     <ImageViewer imgSource={selectedImage || PlaceholderImage} />
     {pickedEmoji && ( 
       <EmojiSticker imageSize={40} stickerSource={pickedEmoji}/> )}
@@ -110,10 +114,10 @@ const onModalClose = () => {
         ):(
          <View style={styles.footerContainer}>
           <Button 
-          onPress={pickIamgeAsync}
+          onPress={pickImageAsync}
           label="Choose a Photo" theme="primary" />
           <Button 
-          label="Delete a Photo"  theme="secondary"
+          label="Edit Photo"  theme="secondary"
           onPress={() => setShowAppOptions(true)}
           />
           
@@ -122,7 +126,7 @@ const onModalClose = () => {
           <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
         <EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose}/>
           </EmojiPicker>
- </View>
+ </GestureHandlerRootView>
   );
 }
 
@@ -141,7 +145,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footerContainer: {
-    flex: 0.33, 
+    flex: 1, 
     alignItems: "center",
     justifyContent: "center", 
   },

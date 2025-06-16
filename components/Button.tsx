@@ -37,9 +37,9 @@ export default function Button({ label, theme, onPress }: Props) {
          
         ]}>
         <Pressable
-          style={[styles.button, { backgroundColor: '#547792' }]}
+          style={[styles.button]}
           onPress={onPress}>
-          <FontAwesome name="trash-o" 
+          <FontAwesome name="pencil" 
           size={18} color="white" 
           style={styles.buttonIcon} />
           
